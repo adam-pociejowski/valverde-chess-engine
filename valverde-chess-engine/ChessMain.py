@@ -1,5 +1,6 @@
 import pygame as p
 import ChessEngine
+import RandomMoveFinder
 
 WIDTH = HEIGHT = 512
 DIMENSION = 8
@@ -31,44 +32,57 @@ def main():
     running = True
     sqSelected = () # last click tuple (x,y)
     playerClicks = [] # keeps track of layer clicks to move piece
+    playerWhite = False # player is white
+    playerBlack = False # computer is black
+    isGameOver = False
 
 
     while running:
+        isHumanTurn = (gs.whiteToMove and playerWhite) or (not gs.whiteToMove and playerBlack)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
-            elif e.type == p.MOUSEBUTTONDOWN:
-                location = p.mouse.get_pos() # (x, y)
-                col = location[0]//SQ_SIZE
-                row = location[1]//SQ_SIZE
-                if sqSelected == (row, col): # clicked the same square twice
-                    sqSelected = () # unselect
-                    playerClicks = []
-                else:
-                    sqSelected = (row, col)
-                    playerClicks.append(sqSelected)
+            elif e.type == p.MOUSEBUTTONDOWN: # human moving
+                if not isGameOver and isHumanTurn:
+                    location = p.mouse.get_pos() # (x, y)
+                    col = location[0]//SQ_SIZE
+                    row = location[1]//SQ_SIZE
+                    if sqSelected == (row, col): # clicked the same square twice
+                        sqSelected = () # unselect
+                        playerClicks = []
+                    else:
+                        sqSelected = (row, col)
+                        playerClicks.append(sqSelected)
 
-                if len(playerClicks) == 2:
-                    move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
-                    for i in range(len(validMoves)):
-                        if move == validMoves[i]:
-                            gs.makeMove(validMoves[i])
-                            moveMade = True
-                            print(move.getChessNotation())
-                            sqSelected = ()
-                            playerClicks = []
-                    if not moveMade:
-                        playerClicks = [sqSelected]
-                        print('Cannot move ', move.getChessNotation())
+                    if len(playerClicks) == 2:
+                        move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
+                        for i in range(len(validMoves)):
+                            if move == validMoves[i]:
+                                gs.makeMove(validMoves[i])
+                                moveMade = True
+                                print(move.getChessNotation())
+                                sqSelected = ()
+                                playerClicks = []
+                        if not moveMade:
+                            playerClicks = [sqSelected]
+                            print('Cannot move ', move.getChessNotation())
 
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z:
                     gs.undoMove()
                     moveMade = True
 
+        # AI move logic
+        if not isGameOver and not isHumanTurn:
+            aiMove = RandomMoveFinder.findMove(validMoves)
+            gs.makeMove(aiMove)
+            moveMade = True
+
         if moveMade:
             validMoves = gs.getValidMoves()
             moveMade = False
+            if len(validMoves) == 0:
+                isGameOver = True
 
         drawGameState(screen, gs, validMoves, sqSelected)
         clock.tick(MAX_FPS)

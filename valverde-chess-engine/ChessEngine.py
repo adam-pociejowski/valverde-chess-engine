@@ -147,7 +147,6 @@ class GameState():
 
         self.enpassantPossible = tmpEnpassantPossible
         self.currentCastlingRights = tmpCastlingRights
-        print('castle rights', self.currentCastlingRights)
         return moves
 
 
